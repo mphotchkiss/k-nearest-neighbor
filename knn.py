@@ -17,7 +17,6 @@ def main():
     # Sanity Check 1: If I query with examples from the training set 
     # and k=1, each point should be its own nearest neighbor
     
-    """
     for i in range(len(example_train_x)):
         assert([i] == get_nearest_neighbors(example_train_x, example_train_x[i], 1))
         
@@ -55,7 +54,6 @@ def main():
 
     pred_y = np.array([[5],[1],[2],[0],[1],[0]])                    
     assert( compute_accuracy(true_y, pred_y) == 4/6)
-    """
 
 
     #######################################
