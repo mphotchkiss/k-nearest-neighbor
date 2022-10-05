@@ -75,14 +75,17 @@ def main():
       t0 = time.time()
 
       #######################################
-      # TODO Compute train accuracy using whole set
+      # Compute train accuracy using whole set
       #######################################
-      train_acc = 0 
+      predictions = predict(train_X, train_y, train_X, k)
+      count = np.count_nonzero(predictions - train_y == 0)
+      train_acc = count / predictions.size
+      print(train_acc)
 
       #######################################
-      # TODO Compute 4-fold cross validation accuracy
+      # Compute 4-fold cross validation accuracy
       #######################################
-      val_acc, val_acc_var = 0,0
+      val_acc, val_acc_var = cross_validation(train_X, train_y, 4, k)
       
       t1 = time.time()
       print("k = {:5d} -- train acc = {:.2f}%  val acc = {:.2f}% ({:.4f})\t\t[exe_time = {:.2f}]".format(k, train_acc*100, val_acc*100, val_acc_var*100, t1-t0))
@@ -102,7 +105,7 @@ def main():
     pred_test_y = predict(train_X, train_y, test_X, best_k)    
     
     # add index and header then save to file
-    test_out = np.concatenate((np.expand_dims(np.array(range(2000),dtype=np.int), axis=1), pred_test_y), axis=1)
+    test_out = np.concatenate((np.expand_dims(np.array(range(2000),dtype=int), axis=1), pred_test_y), axis=1)
     header = np.array([["id", "income"]])
     test_out = np.concatenate((header, test_out))
     np.savetxt('test_predicted.csv', test_out, fmt='%s', delimiter=',')
@@ -132,8 +135,19 @@ def main():
 ######################################################################
 
 def get_nearest_neighbors(example_set, query, k):
-    #TODO
-    return idx_of_nearest  
+    # assumptions about the example_set and query: id and income have been removed, purely 85 dimensions
+
+    # perform the subtraction between each example and the query
+    computed_diff = example_set - query
+
+    # calculate the order 2 norm (euclidean distance) for each of the differences
+    computed_norms = np.linalg.norm(computed_diff, ord=2, axis=1)
+
+    # sort the norms by ascending value
+    sorted_indeces = np.argsort(computed_norms, kind='mergesort')
+    
+    # return the k first indeces
+    return sorted_indeces[0:k]
 
 
 ######################################################################
@@ -157,8 +171,14 @@ def get_nearest_neighbors(example_set, query, k):
 ######################################################################
 
 def knn_classify_point(examples_X, examples_y, query, k):
-    #TODO
-    return predicted_label
+    label_count = 0
+    for i in get_nearest_neighbors(examples_X, query, k):
+        label_count += examples_y[i]
+    if label_count > k/2.0:
+        return 1
+    else:
+        return 0
+
 
 
 
@@ -180,7 +200,53 @@ def knn_classify_point(examples_X, examples_y, query, k):
 ######################################################################
 
 def cross_validation(train_X, train_y, num_folds=4, k=1):
-    #TODO
+    train_folds = np.split(train_X, num_folds)
+    label_folds = np.split(train_y, num_folds)
+
+    correct_counts = []
+
+    tup = tuple(range(8000))
+
+    # for each fold... 
+    for i in range (0, num_folds):
+        # select a new training set from the training set
+        train_set = train_X[tup[:i*2000] + tup[i*2000+1:], :]
+        train_labels = train_y[tup[:i*2000] + tup[i*2000+1:], :]
+
+        # select a new test set from the training set
+        test_set = train_folds[i]
+        test_labels = label_folds[i]
+
+        predictions = predict(train_set, train_labels, test_set, k)
+
+        # subtract and find where prediction == label (i.e. prediction - label = 0)
+        find_diff = predictions - test_labels
+        num_correct = np.count_nonzero(find_diff == 0)
+        
+        # store the number that was correct
+        correct_counts.append(num_correct)
+
+    # convert to numpy array
+    correct_counts = np.array(correct_counts)
+
+    print(correct_counts)
+    print(np.shape(train_X)[0]/num_folds)
+
+    # calculate the % accuracy of each
+    accuracies = correct_counts / (np.shape(train_X)[0]/num_folds)
+
+    print(accuracies)
+
+    # sum the accuracies and divide by folds to get average accuracy
+    avg_val_acc = np.sum(accuracies)/num_folds
+
+    print(avg_val_acc)
+
+    # variance = sum of differences squared divided by observations minus 1
+    varr_val_acc = np.square(np.sum(accuracies - avg_val_acc))/(num_folds - 1)
+
+    print(varr_val_acc)
+
     return avg_val_acc, varr_val_acc
 
 
@@ -232,7 +298,7 @@ def predict(examples_X, examples_y, queries_X, k):
     # For each query, run a knn classifier
     predicted_y = [knn_classify_point(examples_X, examples_y, query, k) for query in queries_X]
 
-    return np.array(predicted_y,dtype=np.int)[:,np.newaxis]
+    return np.array(predicted_y,dtype=int)[:,np.newaxis]
 
 # Load data
 def load_data():
