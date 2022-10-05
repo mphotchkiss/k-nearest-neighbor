@@ -17,6 +17,7 @@ def main():
     # Sanity Check 1: If I query with examples from the training set 
     # and k=1, each point should be its own nearest neighbor
     
+    """
     for i in range(len(example_train_x)):
         assert([i] == get_nearest_neighbors(example_train_x, example_train_x[i], 1))
         
@@ -54,7 +55,7 @@ def main():
 
     pred_y = np.array([[5],[1],[2],[0],[1],[0]])                    
     assert( compute_accuracy(true_y, pred_y) == 4/6)
-
+    """
 
 
     #######################################
@@ -78,9 +79,7 @@ def main():
       # Compute train accuracy using whole set
       #######################################
       predictions = predict(train_X, train_y, train_X, k)
-      count = np.count_nonzero(predictions - train_y == 0)
-      train_acc = count / predictions.size
-      print(train_acc)
+      train_acc = compute_accuracy(train_y, predictions)
 
       #######################################
       # Compute 4-fold cross validation accuracy
@@ -99,7 +98,7 @@ def main():
 
 
     # TODO set your best k value and then run on the test set
-    best_k = 1
+    best_k = 99
 
     # Make predictions on test set
     pred_test_y = predict(train_X, train_y, test_X, best_k)    
@@ -145,7 +144,7 @@ def get_nearest_neighbors(example_set, query, k):
 
     # sort the norms by ascending value
     sorted_indeces = np.argsort(computed_norms, kind='mergesort')
-    
+
     # return the k first indeces
     return sorted_indeces[0:k]
 
@@ -172,7 +171,8 @@ def get_nearest_neighbors(example_set, query, k):
 
 def knn_classify_point(examples_X, examples_y, query, k):
     label_count = 0
-    for i in get_nearest_neighbors(examples_X, query, k):
+    indeces = get_nearest_neighbors(examples_X, query, k)
+    for i in indeces:
         label_count += examples_y[i]
     if label_count > k/2.0:
         return 1
@@ -209,9 +209,9 @@ def cross_validation(train_X, train_y, num_folds=4, k=1):
 
     # for each fold... 
     for i in range (0, num_folds):
-        # select a new training set from the training set
-        train_set = train_X[tup[:i*2000] + tup[i*2000+1:], :]
-        train_labels = train_y[tup[:i*2000] + tup[i*2000+1:], :]
+        # select a new training set from the training set - this excludes (i*2000 - i*2000+2000) for 0 <= i <= 3
+        train_set = train_X[tup[:i*2000] + tup[i*2000+2000:], :]
+        train_labels = train_y[tup[:i*2000] + tup[i*2000+2000:], :]
 
         # select a new test set from the training set
         test_set = train_folds[i]
@@ -229,23 +229,14 @@ def cross_validation(train_X, train_y, num_folds=4, k=1):
     # convert to numpy array
     correct_counts = np.array(correct_counts)
 
-    print(correct_counts)
-    print(np.shape(train_X)[0]/num_folds)
-
     # calculate the % accuracy of each
     accuracies = correct_counts / (np.shape(train_X)[0]/num_folds)
-
-    print(accuracies)
 
     # sum the accuracies and divide by folds to get average accuracy
     avg_val_acc = np.sum(accuracies)/num_folds
 
-    print(avg_val_acc)
-
     # variance = sum of differences squared divided by observations minus 1
     varr_val_acc = np.square(np.sum(accuracies - avg_val_acc))/(num_folds - 1)
-
-    print(varr_val_acc)
 
     return avg_val_acc, varr_val_acc
 
