@@ -234,7 +234,7 @@ def cross_validation(train_X, train_y, num_folds=4, k=1):
     avg_val_acc = np.sum(accuracies)/num_folds
 
     # variance = sum of differences squared divided by observations minus 1
-    varr_val_acc = np.square(np.sum(accuracies - avg_val_acc))/(num_folds - 1)
+    varr_val_acc = np.sum(np.square(accuracies - avg_val_acc))/(num_folds - 1)
 
     return avg_val_acc, varr_val_acc
 
